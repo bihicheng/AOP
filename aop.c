@@ -350,7 +350,7 @@ void _test_func_pointcut_and_execute(HashPosition pos, HashTable *ht, zend_execu
     obj->to_return_ptr_ptr = to_return_ptr_ptr;
     obj->value = (*to_return_ptr_ptr);
     obj->ex = ex;
-    obj->ex = current_ex;
+    obj->current_ex = current_ex;
     obj->object = object;
     obj->scope = scope;
     obj->called_scope = called_scope;
@@ -947,7 +947,7 @@ ZEND_DLEXPORT void aop_execute (zend_execute_data *current_execute_data TSRMLS_D
     }
 
     data = EG(current_execute_data)->prev_execute_data;
-    php_printf("%d == %d == %d", data, EG(current_execute_data), current_execute_data);
+    //php_printf("%d == %d == %d", data, EG(current_execute_data), current_execute_data);
 
     if (data) {
         curr_func = data->function_state.function;
@@ -1084,7 +1084,11 @@ void aop_execute_internal (zend_execute_data *current_execute_data, int return_v
             //TODO ERROR
             return ;
         }
-        execute_data = *ex;
+        if (current_ex!=NULL) {
+            execute_data = *current_ex;
+        } else {
+            execute_data = *ex;
+        }
 
         //EX(function_state).function = fci_cache->function_handler;
         original_object = EX(object);
@@ -1171,7 +1175,7 @@ void aop_execute_internal (zend_execute_data *current_execute_data, int return_v
                 zend_vm_stack_push((void*)(zend_uintptr_t)arg_count TSRMLS_CC);
             }
         } else {
-            arg_count = (int)(zend_uintptr_t) *EX(function_state).arguments;
+            arg_count = (int)(zend_uintptr_t) *(ex->function_state.arguments);
         }
 
         current_scope = EG(scope);
@@ -1216,7 +1220,7 @@ void aop_execute_internal (zend_execute_data *current_execute_data, int return_v
             EG(active_op_array) = (zend_op_array *) EX(function_state).function;
             original_opline_ptr = EG(opline_ptr);
             //_zend_execute(EG(active_op_array) TSRMLS_CC);
-            _zend_execute_ex(ex->prev_execute_data TSRMLS_CC);
+            _zend_execute_ex(current_ex TSRMLS_CC);
 
             if (EG(symtable_cache_ptr)>=EG(symtable_cache_limit)) {
                 zend_hash_destroy(EG(active_symbol_table));
